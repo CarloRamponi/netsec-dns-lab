@@ -1,0 +1,57 @@
+{
+    "interfaces": {
+        "lo": {
+            "ip_addresses": [
+                "127.0.0.1/8"
+            ],
+            "state": "UNKNOWN"
+        },
+        "eth0": {
+            "ip_addresses": [
+                "2.2.2.1/24"
+            ],
+            "state": "UP"
+        },
+        "eth1": {
+            "ip_addresses": [
+                "3.3.3.2/24"
+            ],
+            "state": "UP"
+        }
+    },
+    "route": [
+        {
+            "dst": "1.1.1.0/24",
+            "gateway": "3.3.3.4",
+            "dev": "eth1",
+            "flags": []
+        },
+        {
+            "dst": "2.2.2.0/24",
+            "dev": "eth0",
+            "protocol": "kernel",
+            "scope": "link",
+            "prefsrc": "2.2.2.1",
+            "flags": []
+        },
+        {
+            "dst": "3.3.3.0/24",
+            "dev": "eth1",
+            "protocol": "kernel",
+            "scope": "link",
+            "prefsrc": "3.3.3.2",
+            "flags": []
+        },
+        {
+            "dst": "192.168.1.0/24",
+            "gateway": "3.3.3.3",
+            "dev": "eth1",
+            "flags": []
+        }
+    ],
+    "listening_ports": [],
+    "processes": [
+        "bash",
+        "ps -e -o command"
+    ]
+}
