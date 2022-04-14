@@ -8,4 +8,5 @@ options {
         dnssec-validation no; 
         dnssec-enable no;
         query-source port 33333;
+        dump-file "/var/cache/bind/dump.db";
 };
