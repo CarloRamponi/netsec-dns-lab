@@ -1,0 +1,11 @@
+# Debian 11 (bullseye)
+deb http://deb.debian.org/debian/ bullseye main
+deb-src http://deb.debian.org/debian/ bullseye main
+ 
+# Aggiornamenti di sicurezza per bullseye
+deb http://security.debian.org/debian-security bullseye-security main
+deb-src http://security.debian.org/debian-security bullseye-security main
+
+# Aggiornamenti raccomandati per bullseye
+deb http://deb.debian.org/debian/ bullseye-updates main
+deb-src http://deb.debian.org/debian/ bullseye-updates main

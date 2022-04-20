@@ -1,4 +1,4 @@
 ifconfig eth0 192.168.1.254/24 up
 route add default gw 192.168.1.1
 
-/etc/init.d/bind start
+named -g
