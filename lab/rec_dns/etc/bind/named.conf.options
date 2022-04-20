@@ -2,7 +2,6 @@ options {
         listen-on port 53 { 127.0.0.1; 192.168.1.254; };
         allow-query 	{ localhost; 192.168.1.0/24; };
         recursion yes;
-        forward first;
         forwarders {
                 3.3.3.1;
         };
@@ -10,8 +9,8 @@ options {
         dnssec-enable no;
         query-source port 33333;
         dump-file "/var/cache/bind/dump.db";
-        resolver-query-timeout 15;
-        resolver-retry-interval 15000;
+        #resolver-query-timeout 15;
+        #resolver-retry-interval 15000;
 };
 
 logging {

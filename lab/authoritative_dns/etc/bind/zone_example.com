@@ -3,15 +3,15 @@ $TTL   60000
                         2006031201 ; serial
                         28800 ; refresh
                         14400 ; retry
-                        3600000 ; expire
+                        1 ; expire
                         0 ; negative cache ttl
                         )
 
-@       IN      NS    ns.example.com.
+@   1       IN      NS    ns.example.com.
 
-@       IN      A     2.2.2.2
-www     IN      A     2.2.2.2
-ns      IN      A     2.2.2.254
-foo     IN      A     2.2.2.2
-bar     IN      A     2.2.2.3
-*       IN      A     2.2.2.2
+@   1       IN      A     2.2.2.2
+www 1       IN      A     2.2.2.2
+ns  1       IN      A     2.2.2.254
+foo 1       IN      A     2.2.2.2
+bar 1       IN      A     2.2.2.3
+*   1       IN      A     2.2.2.2
