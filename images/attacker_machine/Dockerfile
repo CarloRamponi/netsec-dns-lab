@@ -7,4 +7,6 @@ RUN mkdir build && cd build && cmake ../ && make && make install
 WORKDIR /
 RUN ldconfig
 COPY --chown=root:root exploit.cpp /
+COPY --chown=root:root exploit-poisoning.cpp /
 RUN g++ -o exploit exploit.cpp -ltins
+RUN g++ -o exploit-poisoning exploit-poisoning.cpp -ltins
