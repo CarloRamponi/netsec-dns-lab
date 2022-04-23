@@ -6,7 +6,7 @@ WORKDIR /libtins
 RUN mkdir build && cd build && cmake ../ && make && make install
 WORKDIR /
 RUN ldconfig
-COPY --chown=root:root exploit.cpp /
-COPY --chown=root:root exploit-poisoning.cpp /
-RUN g++ -o exploit exploit.cpp -ltins
-RUN g++ -o exploit-poisoning exploit-poisoning.cpp -ltins
+COPY --chown=root:root kaminsky.cpp /
+COPY --chown=root:root cache-poisoning.cpp /
+RUN g++ -o kaminsky kaminsky.cpp -ltins
+RUN g++ -o cache-poisoning cache-poisoning.cpp -ltins

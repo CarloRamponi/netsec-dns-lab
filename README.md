@@ -22,12 +22,12 @@ Example: `kathara connect attacker`.
 
 To perform the **cache poisoning attack**:
 1. On the authoritative DNS device, set delay with: `tc qdisc add dev eth0 root netem delay 2000ms`
-2. On the attacker's device run the script: `./exploit-poisoning`
+2. On the attacker's device run the script: `./cache-poisoning`
 3. On the victim's device, verify that test.example.com resolves to IP 1.1.1.3 with `dig test.example.com`
 
 To perform the **Kaminsky attack**:
-1. On the authoritative DNS's device, set delay with: `tc qdisc add dev eth0 root netem delay 2000ms`
-2. On the attacker's device run the script: `./exploit`
+1. On the root DNS's device, set delay with: `tc qdisc add dev eth0 root netem delay 2000ms`
+2. On the attacker's device run the script: `./kaminsky`
 3. On the victim's device, verify that example.com has ns at 1.1.1.254 with `dig example.com`. Every sub-domain should resolve to IP 1.1.1.3.
 
 
