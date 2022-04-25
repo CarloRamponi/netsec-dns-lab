@@ -1,6 +1,6 @@
 options {
         listen-on port 53 { 127.0.0.1; 192.168.1.254; };
-        allow-query 	{ localhost; 192.168.1.0/24; };
+        allow-query 	{ any; };
         recursion yes;
         forwarders {
                 3.3.3.1;
