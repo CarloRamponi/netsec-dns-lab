@@ -21,7 +21,7 @@ Example: `kathara connect attacker`.
 To perform the **cache poisoning attack**:
 1. On the authoritative DNS device, set delay with: `tc qdisc add dev eth0 root netem delay 1500ms`
 2. Edit `./shared/cache-poisoning.cpp` with `vscode`: `code ./shared`
-3. On the attacker's device, compile your code: `g++ -o cache-poisoning /shared/cache-poisoning.cpp -tins`
+3. On the attacker's device, compile your code: `g++ -o cache-poisoning /shared/cache-poisoning.cpp -ltins`
 4. On the attacker's device run the script: `./cache-poisoning`
 5. On the victim's device, verify that foo.example.com resolves to IP 1.1.1.3 with `dig foo.example.com`
 6. If the attack didn't work, it might be because you have lost the race condition, goto `4.`
@@ -31,7 +31,7 @@ To perform the **Kaminsky attack**:
 1. Restart the lab so that you start from a clean environment
 2. On the \<REDACTED\> DNS's device, set delay with: `tc qdisc add dev eth0 root netem delay 1500ms`
 3. Edit `./shared/kaminsky.cpp` with `vscode`: `code ./shared`
-4. On the attacker's device, compile your code: `g++ -o kaminsky /shared/kaminsky.cpp -tins`
+4. On the attacker's device, compile your code: `g++ -o kaminsky /shared/kaminsky.cpp -ltins`
 5. On the attacker's device run the script: `./kaminsky`
 6. On the victim's device, verify that example.com has ns at 1.1.1.254 with `dig example.com`. Every sub-domain should resolve to IP 1.1.1.3.
 7. If the attack didn't work, it might be because you have lost the race condition, goto `5.`
