@@ -5,14 +5,14 @@
 \usepackage{float}
 \usepackage{xcolor}
 \usepackage{listings}
+\lstset{escapeinside={<@}{@>}}
 \usepackage{hyperref}
-\usepackage{graphicx}
 
 \graphicspath{ {./images/} }
 
-\title{Behind the Scenes}
-\author{Carlo Ramponi}
-\date{22 April 2022}
+\title{DNS laboratory - Group 2}
+\author{Carlo Ramponi, Luca De Menego, Matteo Zanotto}
+\date{04 May 2022}
 
 \definecolor{codegreen}{rgb}{0,0.6,0}
 \definecolor{codegray}{rgb}{0.5,0.5,0.5}
@@ -160,10 +160,188 @@ Since DNS resolvers query for a name, class and type, they are inherently queryi
   \caption{Laboratory network topology}
 \end{figure}
 
+\section{DNS Cache Poisoning}
+
+\subsection{Attack introduction}
+In this first exercise we will focus on a DNS Cache Poisoning attack. The main idea behind it is to inject wrong information into a recursive nameserver's cache. In our case, in particular, we will try to map, inside the target DNS' cache, the domain \texttt{foo.example.com} to the attacker's malicious website.
+
+In order to perform such an attack, it is obviously not enough to send random DNS responses with the chosen \texttt{A} record: the DNS will only accept \textbf{valid} responses \textbf{to pending queries}. The most important fields our fake response will need to match are:
+\begin{itemize}
+    \item the source port: the chosen UDP source port for the communication between two entities;
+    \item the query ID: a unique identifier assigned when the query was created;
+    \item the query section: every response must contain a copy of the original request.
+\end{itemize}
+
+\subsection{The attack in details}
+\label{subsec:attack-details}
+
+\begin{figure}
+    \centering
+    \includegraphics[width=\textwidth]{cache-poisoning-attack.png}
+    \caption{Cache Poisoning Attack scheme}
+    \label{fig:cache-poisoning-attack}
+\end{figure}
+
+Before diving into the implementation, it is crucial to understand how the attack will be performed. Following Figure \ref{fig:cache-poisoning-attack}, the attack can be represented with 6 steps:
+\begin{enumerate}
+    \item the attacker asks to the victim recursive nameserver what is the \texttt{A} record for \texttt{foo.example.com};
+    \item the recursive nameserver, since it doesn't know the answer, asks it to the Top Level Domain nameserver for \texttt{.com};
+    \item the TLD nameserver answers with: 
+    \begin{itemize}
+        \item a NS record, stating that the authoritative nameserver for the requested domain is \texttt{ns.example.com};
+        \item an A record mapping \texttt{ns.example.com} to its IP address \texttt{2.2.2.254}.
+    \end{itemize}
+    \item now the recursive DNS can ask, for the last time, what is the A record for \texttt{foo.example.com} to the authoritative nameserver;
+    \item a \textbf{race condition} takes place:
+    \begin{itemize}
+        \item the authoritative nameserver replies with the correct A record, containing \texttt{2.2.2.2};
+        \item the attacker tries to guess the transaction ID of the last query, sending fake responses stating that \texttt{foo.example.com} is at \texttt{1.1.1.3}, a malicious webserver controlled by the attacker.
+    \end{itemize}
+    \item finally, the recursive nameserver will answer the attacker with the \texttt{A} record it got first.
+\end{enumerate}
+
+\noindent
+At the end of this process, if the attacker is able to correctly guess the query ID and send the fake response before the real authoritative nameserver, the attack succeeds. Notice that an important assumption was made, since we decided to fix the source port to \texttt{33333}, to simulate the original attack. In Section \ref{sec:final-considerations} additional information can be found about this.
+
+
+
+\subsection{Sniff a legitimate communication}
+The explained flow can be easily sniffed and analyzed with some basic command line tools. Let's try to reconstruct it from a legitimate DNS query.
+
+First of all, open one terminal, connect to the recursive DNS and start listening to UDP packets:
+\begin{lstlisting}
+ <@\textcolor{codegray}{:>}@> kathara lstart  <@\textcolor{codegreen}{\# Start the laboratory if you haven't already}@>
+ <@\textcolor{codegray}{:>}@> kathara connect rec_dns <@\textcolor{codegreen}{\# Connect to the recursive DNS}@>
+ <@\textcolor{codegray}{rec-dns :>}@> tcpdump -vv udp port 53    <@\textcolor{codegreen}{\# Start listening to all udp packets}@>
+\end{lstlisting}
+
+Now open another terminal, connect to the victim and gather DNS information on \texttt{hi.example.com} using the \texttt{dig} utility:
+\begin{lstlisting}
+ <@\textcolor{codegray}{:>}@> kathara connect victim <@\textcolor{codegreen}{\# Connect to the victim's machine}@>
+ <@\textcolor{codegray}{victim :>}@> dig hi.example.com    <@\textcolor{codegreen}{\# Gather DNS information on hi.example.com}@>
+\end{lstlisting}
+
+The result of \texttt{tcpdump} is shown in Figure \ref{fig:tcpdump-res}. The flow is clearly the same as the one explained in Subsection \ref{subsec:attack-details}, without the attacker's manipulation involved. It is important to note that the query IDs are always respected between requests and replies, and here the final response of the authoritative server contains the correct \texttt{A} record.
+
+One only thing is still missing: the response from the recursive nameserver to the client. This is available in the \texttt{dig}'s response, visible from Figure \ref{fig:dig-res}. Apart from the sections' result, that at this point should be clear, you should see the same Query ID of the first request in the \texttt{tcpdump} output.
+
+\begin{figure}
+    \centering
+    \includegraphics[width=\textwidth]{tcpdump-res.png}
+    \caption{tcpdump's result}
+    \label{fig:tcpdump-res}
+\end{figure}
+
+\begin{figure}
+    \centering
+    \includegraphics[width=\textwidth]{dig-result.png}
+    \caption{dig's result}
+    \label{fig:dig-res}
+\end{figure}
+
+\subsection{The Workspace}
+
+Inside the lab directory you will find a \textbf{shared folder}, common to all Kathará machines. All updates performed to the files inside this folder will be immediately visible by everyone. This means that you can:
+\begin{itemize}
+    \item work on the scripts inside it from the host machine, with the editor you want;
+    \item when you are ready, connect to the attacker's machine with \texttt{katahra connect attacker};
+    \item compile the script with \texttt{g++ -o script-name /shared/script-name.cpp -ltins};
+    \item run it with \texttt{./script-name}
+\end{itemize}
+
+\noindent
+All the scripts are written in C++, and for packet crafting the \texttt{libtins} library has been used, which provides an easy-to-use and efficient platform for manipulating network packets.
+
+\subsection{Implementation of the attack}
+The cache poisoning implementation is available inside the \texttt{cache-poisoning.cpp} file, in the script folder. Following the flow explained in subsection \ref{subsec:attack-details}, in the first part a DNS query for is created. In particular, as shown in Figure \ref{fig:cache-poisoning-first}:
+\begin{itemize}
+    \item the type of the request is set to \texttt{DNS::QUERY};
+    \item the query ID can be any number we want, since we are creating the query ourselves;
+    \item the recursion is allowed, hence the recursive DNS will recursively ask the same query to upper-level nameservers;
+    \item the actual query will be for the \texttt{A} record of \texttt{foo.example.com};
+    \item the final packet is constructed, composed by three parts: IP, UDP and DNS.
+\end{itemize}
+
+\begin{figure}
+    \centering
+    \includegraphics[width=\textwidth]{cache-poisoning-first.png}
+    \caption{First part of the cache poisoning script: generate a DNS query}
+    \label{fig:cache-poisoning-first}
+\end{figure}
+
+\noindent
+In the second part of the script available in Figure \ref{fig:cache-poisoning-second}, instead, we will try to guess the Query ID, sending fake packets containing the malicious A record. Here the main steps are the following:
+
+\begin{itemize}
+    \item loop through every possible Query ID, creating a packet for each one of them;
+    \item set the type of the DNS packet to \texttt{DNS::RESPONSE};
+    \item set the current Query ID of the loop;
+    \item allow the recursion, for the same reason as before;
+    \item add the original query into the packet, as any DNS response without the corresponding query will be simply dropped by a DNS server;
+\end{itemize}
+
+\noindent
+In order to finalize the script, we need to complete the DNS answer and initialize the IP packet correctly:
+\begin{enumerate}
+    \item \textbf{DNS answer creation}: what we want to achieve is a DNS \texttt{A} record stating that the domain \texttt{foo.example.com} should resolve to \texttt{1.1.1.3}. So the first parameter must be set to \texttt{ATTACKING\_DOMAIN}, and the second to \texttt{MALICIOUS\_WEBSERVER};
+    \item \textbf{IP packet completion}: we want to send this fake response to the recursive DNS, pretending to be the legitimate authoritative nameserver it contacted. Since the first parameter represents the destination and the second one the source, we should put respectively \texttt{RECURSIVE\_DNS}, \texttt{AUTHORITATIVE\_DNS}.
+\end{enumerate}
+
+\begin{figure}
+    \centering
+    \includegraphics[width=\textwidth]{cache-poisoning-second.png}
+    \caption{Second part of the cache poisoning script: try to guess the Query ID and poison the cache of the target DNS}
+    \label{fig:cache-poisoning-second}
+\end{figure}
+
+\subsection{Final Steps}
+\noindent
+Before compiling and running the attack, however, there is one important step missing. We want to be sure to win the race condition against the real authoritative DNS. That's why we will cheat a little bit, by adding a delay to it:
+\begin{lstlisting}
+ <@\textcolor{codegray}{:>}@> kathara connect authoritative_dns  <@\textcolor{codegreen}{\# Connect to the authoritative DNS}@>
+ <@\textcolor{codegray}{authoritative-dns :>}@> tc qdisc add dev eth0 root netem delay 1500ms    <@\textcolor{codegreen}{\# Add delay}@>
+\end{lstlisting}
+\noindent
+Now that the probability of success has increased a lot, we can compile and run the attack:
+\begin{lstlisting}
+ <@\textcolor{codegray}{:>}@> kathara connect attacker  <@\textcolor{codegreen}{\# Connect to the attacker's machine}@>
+ <@\textcolor{codegray}{attacker :>}@> g++ -o cache-poisoning /shared/cache-poisoning.cpp -ltins    <@\textcolor{codegreen}{\# Compile}@>
+ <@\textcolor{codegray}{attacker :>}@> ./cache.poisoning    <@\textcolor{codegreen}{\# Run}@>
+\end{lstlisting}
+
+\noindent
+Since we are guessing the Query ID, the probability of success is clearly not 100\%. To verify whether the attack was successful or not there are two main ways:
+\begin{enumerate}
+    \item check the cache of the recursive DNS. You should see an A record for \texttt{foo.example.com} mapped to \texttt{1.1.1.3}.
+    \begin{lstlisting}
+     <@\textcolor{codegray}{:>}@> kathara connect rec_dns  <@\textcolor{codegreen}{\# Connect to the recursive DNS}@>
+     <@\textcolor{codegray}{dns :>}@> rndc dumpdb -cache && grep "example.com" /var/cache/bind/dump.db     
+     
+     [...]
+     foo.<@\textcolor{red}{example.com}@>.  259172  A   1.1.1.3
+     [...]\end{lstlisting}
+     \item check the effect on the victim's side by using \textit{links}, a simple console browser:
+     \begin{lstlisting}
+     <@\textcolor{codegray}{:>}@> kathara connect victim  <@\textcolor{codegreen}{\# Connect to the victim's machine}@>
+     <@\textcolor{codegray}{victim :>}@> links    <@\textcolor{codegreen}{\# Launch the browser}@>\end{lstlisting}
+     Type \textbf{'g'} and search \texttt{'http://foo.example.com'}. You should be redirected to the attacker's website, as can be seen in Figure \ref{fig:attacker-website}.
+\end{enumerate}
+
+\noindent
+If in your case it didn't work, keep retrying: after some trials you should be able to guess the correct Query ID. You can even try to play with the delay: incrementing it would mean increasing your probability of success.
+
+\begin{figure}
+    \centering
+    \includegraphics[width=\textwidth]{attacker-website.png}
+    \caption{The attacker's website, visible after a correct execution of the cache poisoning attack}
+    \label{fig:attacker-website}
+\end{figure}
+
 \newpage
 \section{Kaminsky Attack}
 
 \section{Final considerations}
+\label{sec:final-considerations}
 
 \subsection{Performing the attack nowadays}
 
