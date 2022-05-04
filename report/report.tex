@@ -1,15 +1,12 @@
-\documentclass{article}
+\documentclass[11pt,a4paper]{article}
+
 \usepackage[utf8]{inputenc}
-\usepackage{listings}
+\usepackage[margin=2.5cm]{geometry}
+\usepackage{graphicx}
+\usepackage{float}
 \usepackage{xcolor}
+\usepackage{listings}
 \usepackage{hyperref}
-\usepackage[a4paper, total={6in, 8in}]{geometry}
-
-\title{Behind the Scenes}
-\author{Carlo Ramponi}
-\date{22 April 2022}
-
-\begin{document}
 
 \definecolor{codegreen}{rgb}{0,0.6,0}
 \definecolor{codegray}{rgb}{0.5,0.5,0.5}
@@ -37,11 +34,23 @@
 
 \lstset{style=mystyle}
 
+\begin{document}
 \begin{titlepage}
-  \centering
-  \Large Department of Information Engineering and Computer Science
-  \vfill
-  \Large (DISI)
+
+\centering
+    \vfill
+    \vskip3cm
+    \includegraphics[width=6cm]{logo_unitn.png}
+    \vfill
+    \textbf{\Huge Network Security}
+    \vskip1cm
+    \textbf{\LARGE DNS Laboratory}
+    \vskip1cm
+    \large May 4th, 2022
+    \vskip2cm
+    \Large Group 2
+    \vfill
+
 \end{titlepage}
 
 \clearpage
@@ -71,151 +80,5 @@
 \subsection{Katharà}
 
 \subsection{Laboratory network topology}
-
-
-
-\noindent
-As always, we start with the \texttt{file} command, which gives us some information about the file we will have to analyze.
-
-\begin{lstlisting}
- $ file behindthescenes
- behindthescenes: ELF 64-bit LSB pie executable, x86-64, version 1 (SYSV), dynamically linked, interpreter /lib64/ld-linux-x86-64.so.2, BuildID[sha1]=e60ae4c886619b869178148afd12d0a5428bfe18, for GNU/Linux 3.2.0, not stripped
-\end{lstlisting}
-
-\noindent
-As we can see from the command output,
-the file is an ELF executable, and not stripped! Yay!
-\\\\
-
-\noindent
-Let's now try to execute the program
-
-\begin{lstlisting}
- $ ./behindthescenes
- ./challenge <password>
-\end{lstlisting}
-
-\noindent
-It asks for a password, as a command line argument. Let's try with one.
-
-\begin{lstlisting}
- $ ./behindthescenes test
-\end{lstlisting}
-
-\noindent
-It does nothing...\\
-Let's try with \texttt{strings} and \texttt{ltrace}...\\
-\\
-\texttt{strings} gives us nothing helpful, but we see that the program uses the library functions \texttt{strlen} and \texttt{strncmp}...
-
-\begin{lstlisting}
-$ ltrace ./behindthescenes test     
-  --- SIGILL (Illegal instruction) ---
-  --- SIGILL (Illegal instruction) ---
-  --- SIGILL (Illegal instruction) ---
-  +++ exited (status 0) +++    
-\end{lstlisting}
-
-\noindent
-\texttt{ltrace} here is of no help...
-
-\noindent
-Let's open it with \texttt{Ghidra}...\\
-\\
-NOTE: the code is full of \texttt{ud2} instructions, which is an intruction used for testing
-purposes, in order to test the handling of an invalid instruction.\\
-When this instruction is executed, if no handler to the \texttt{Illegal instruction} is provided, the
-program will crash.\\
-But in our case a handler function has been provided: \texttt{segill\_sigaction}.
-So, when that instruction is executed, the program will execute that function and then resume the execution.\\
-\\
-The problem here is that \texttt{Ghidra} has been tricked by that instruction, so the decompiler won't be able to
-work correctly, and also the disassembler will stop disassembling when that instruction is encountered.\\
-So we'll have to explicitly tell \texttt{Ghidra} to disassmble more code, until the end of the main function.
-
-\begin{lstlisting}
-MOV        RAX,qword ptr [RBP + -0xb0]
-ADD        RAX,0x8
-MOV        RAX,qword ptr [RAX]
-MOV        RDI,RAX
-CALL       <EXTERNAL>::strlen                 
-            ;size_t strlen(char * __s)
-CMP        RAX,0xc
-JNZ        LAB_00101432
-UD2
-MOV        RAX,qword ptr [RBP + -0xb0]
-ADD        RAX,0x8
-MOV        RAX,qword ptr [RAX]
-MOV        EDX,0x3
-LEA        RSI,[DAT_0010201b]
-MOV        RDI,RAX
-CALL       <EXTERNAL>::strncmp
-            ;int strncmp(char * __s1, char * __s2, size_t __n)
-TEST       EAX,EAX
-JNZ        LAB_00101429
-UD2
-MOV        RAX,qword ptr [RBP + -0xb0]
-ADD        RAX,0x8
-MOV        RAX,qword ptr [RAX]
-ADD        RAX,0x3
-MOV        EDX,0x3
-LEA        RSI,[DAT_0010201f]
-MOV        RDI,RAX
-CALL       <EXTERNAL>::strncmp
-            ;int strncmp(char * __s1, char * __s2, size_t __n)
-TEST       EAX,EAX
-JNZ        LAB_00101420
-UD2
-MOV        RAX,qword ptr [RBP + -0xb0]
-ADD        RAX,0x8
-MOV        RAX,qword ptr [RAX]
-ADD        RAX,0x6
-MOV        EDX,0x3
-LEA        RSI,[DAT_00102023]
-MOV        RDI,RAX
-CALL       <EXTERNAL>::strncmp
-            ;int strncmp(char * __s1, char * __s2, size_t __n)
-TEST       EAX,EAX
-JNZ        LAB_00101417
-UD2
-MOV        RAX,qword ptr [RBP + -0xb0]
-ADD        RAX,0x8
-MOV        RAX,qword ptr [RAX]
-ADD        RAX,0x9
-MOV        EDX,0x3
-LEA        RSI,[DAT_00102027]
-MOV        RDI,RAX
-CALL       <EXTERNAL>::strncmp
-            ;int strncmp(char * __s1, char * 
-TEST       EAX,EAX
-JNZ        LAB_0010140e
-UD2
-MOV        RAX,qword ptr [RBP + -0xb0]
-ADD        RAX,0x8
-MOV        RAX,qword ptr [RAX]
-MOV        RSI,RAX
-LEA        RDI,[s_>_HTB{%s}_0010202b]  = "> HTB{%s}\n"
-MOV        EAX,0x0
-CALL       <EXTERNAL>::printf
-            ;int printf(char * __format, ...)
-\end{lstlisting}
-
-\noindent
-Here we can see that there is a call to \texttt{strlen}, which should return \texttt{0xc (=12)}
-in order for the program to continue.\\
-\\
-After that, there are multiple calls to \texttt{strncmp}, with length 3, and with the following strings:
-\begin{lstlisting}[language=c]
-"Itz"
-"_0n"
-"Ly_"
-"UD2"
-\end{lstlisting}
-
-\noindent
-And that is the password.\\
-\\
-NOTE: the password has been divided in small parts (3 characters each), so that \texttt{strings}
-won't be able to find it.\\
 
 \end{document}
