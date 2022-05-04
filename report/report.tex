@@ -318,7 +318,7 @@ Now that the probability of success has increased a lot, we can compile and run 
 \begin{lstlisting}
  <@\textcolor{codegray}{:>}@> kathara connect attacker  <@\textcolor{codegreen}{\# Connect to the attacker's machine}@>
  <@\textcolor{codegray}{attacker :>}@> g++ -o cache-poisoning /shared/cache-poisoning.cpp -ltins    <@\textcolor{codegreen}{\# Compile}@>
- <@\textcolor{codegray}{attacker :>}@> ./cache.poisoning    <@\textcolor{codegreen}{\# Run}@>
+ <@\textcolor{codegray}{attacker :>}@> ./cache-poisoning    <@\textcolor{codegreen}{\# Run}@>
 \end{lstlisting}
 
 \noindent
@@ -351,6 +351,231 @@ If in your case it didn't work, keep retrying: after some trials you should be a
 
 \newpage
 \section{Kaminsky Attack}
+
+\subsection{Attack introduction}
+
+In the previous attack we have succesfully poisoned an \textbf{A} record in the
+cache of the \emph{recursive DNS}, meaning that we gained full control over the
+host \texttt{foo.example.com}.
+\\
+\\
+\noindent
+The \emph{Kaminsky attack} is a variant of the \emph{cache poisoning attack}, in
+which we want to gain control over a full domain, instead of a single host, by
+poisoning a \textbf{NS} record in the cache of the \emph{recursive DNS}.
+\\
+\\
+\noindent
+In our case, we want to gain control over \texttt{example.com}, so that all the
+subdomains of \texttt{example.com} will be poisoned.
+
+\subsection{The attack in details}
+
+\begin{figure}[h!]
+  \includegraphics[width=\textwidth]{kaminsky-attack.png}
+  \caption{Kaminsky Attack scheme}
+  \label{fig:kaminsky-attack}
+\end{figure}
+
+\noindent
+Here are the steps of this attack:
+\begin{enumerate}
+  \item the attacker asks the victim recursive DNS to resolve a random subdomain of
+        \texttt{example.com} (e.g. \texttt{xyz.example.com}), so that it will probably
+        not be already in his cache.
+  \item the recursive DNS, since it doesn't know the domain, will ask the TLD domain the
+        the same question.
+  \item now a \textbf{race condition} takes place:
+        \begin{itemize}
+          \item the TLD will reply saying that \texttt{*.example.com} can be resolved
+                by \texttt{ns.example.com} at \texttt{2.2.2.254}, which in the DNS language
+                would be \texttt{FOR example.com ASK ns.example.com AT 2.2.2.254}.
+          \item the attacker will try to guess the \textbf{Query ID} and send a poisoned response
+                saying: \texttt{FOR example.com ASK ns.attacker.com AT 1.1.1.254}.
+        \end{itemize}
+  \item the recursive DNS will then ask the Authoritative DNS (whether it is the real
+        one or the attacker's one) the same question,
+  \item which will reply with an \textbf{A} record for \texttt{xyz.example.com},
+  \item then the reply will be forwarded to the host that asked for it.
+\end{enumerate}
+
+\noindent
+Also in this case, if the attacker is able to win the race condition, guessing the right
+\textbf{Query ID} before the legitimate response from the TLD DNS arrives, then attack
+is succesfull.
+\\
+\\
+\noindent
+You can notice that the process is very similar to the previous attack, but this one
+is way more powerful: it can poison a whole domain, not just a single host.
+
+\subsection{The workspace}
+
+Also the workspace is very similar to the previous attack. There is a template of the
+attack inside the lab's \textbf{shared} folder, which has to be completed. You can
+compile and run the scripts in the exact same way.
+\\
+\\
+\noindent
+Let's first clean our environment, to make sure we start from a fresh installation of
+the lab, by restarting all the containers:
+
+\begin{lstlisting}
+<@\textcolor{codegray}{:>}@> kathara lclean  <@\textcolor{codegreen}{\# Stop the lab and remove the containers}@>
+<@\textcolor{codegray}{:>}@> kathara lstart  <@\textcolor{codegreen}{\# Restart the lab from scratch}@>
+\end{lstlisting}
+
+\noindent
+\\
+Once again we need to cheat a little bit, setting a delay on the server we want to beat
+during the \textbf{race condition}, which in this case is the \emph{Top Level Domain}.
+
+\begin{lstlisting}
+<@\textcolor{codegray}{:>}@> kathara connect root_dns                       <@\textcolor{codegreen}{\# Connect to the TLD machine}@>
+<@\textcolor{codegray}{root\_server :>}@> tc qdisc add dev eth0 root netem delay 1500ms   <@\textcolor{codegreen}{\# Set the delay}@>
+\end{lstlisting}
+
+\subsection{Implementation of the attack}
+
+The first part of the attack, apart from the random choice of the subdomain, is the same
+as the \emph{Cache Poisoning Attack}. So let's jump to the second part.
+
+\begin{figure}[h!]
+  \includegraphics[width=\textwidth]{kaminsky-template.png}
+  \caption{Kaminsky Attack template}
+  \label{fig:kaminsky-attack-template}
+\end{figure}
+
+\noindent
+\\
+As we can see in figure \ref{fig:kaminsky-attack-template}, the malicious response has to be
+built, like in the previous case, with:
+\begin{itemize}
+  \item as a \texttt{DNS::RESPONSE},
+  \item with the chosen \texttt{Query ID},
+  \item and has to include the original query
+\end{itemize}
+
+\noindent
+We now need to complete this template by adding the Authoritative answer:
+\begin{itemize}
+  \item we need to include the \textbf{NS} entry for the \texttt{example.com} domain,
+        which is the part: \texttt{"FOR example.com ASK ns.attacker.com"}
+  \item and include the address of the give nameserver as an additional record, which is
+        the part: \texttt{"AT 1.1.1.254"}
+  \item and finally, complete the source and destination IP address, which are, respectively,
+        the \texttt{TLD DNS} and the \texttt{recursive DNS}.
+\end{itemize}
+
+\begin{figure}[h!]
+  \includegraphics[width=\textwidth]{kaminsky-solution.png}
+  \caption{Kaminsky Attack solution}
+  \label{fig:kaminsky-attack-solution}
+\end{figure}
+
+\subsection{Run the attack}
+
+Compile and run the scripts as usual:
+\begin{lstlisting}
+<@\textcolor{codegray}{:>}@> kathara connect attacker  <@\textcolor{codegreen}{\# Connect to the attacker's machine}@>
+<@\textcolor{codegray}{attacker :>}@> g++ -o kaminsky /shared/kaminsky.cpp -ltins    <@\textcolor{codegreen}{\# Compile}@>
+<@\textcolor{codegray}{attacker :>}@> ./kaminsky    <@\textcolor{codegreen}{\# Run}@>
+\end{lstlisting}
+
+\noindent
+\\
+Check if the attack was succesfull either by:
+\begin{itemize}
+  \item resolving any domain under \texttt{example.com}, from the victim machine
+\begin{lstlisting}
+<@\textcolor{codegray}{:>}@> kathara connect victim
+<@\textcolor{codegray}{victim:/\#}@> dig foo.example.com
+[...]
+;; ANSWER SECTION:
+<@\textcolor{codepurple}{foo.example.com.}@>        59815   IN      A       <@\textcolor{codepurple}{1.1.1.3}@>
+[...]
+
+<@\textcolor{codegray}{victim:/\#}@> dig bar.example.com
+[...]
+;; ANSWER SECTION:
+<@\textcolor{codepurple}{bar.example.com.}@>        60000   IN      A       <@\textcolor{codepurple}{1.1.1.3}@>
+[...]  
+\end{lstlisting}
+  \item or looking at the \emph{recursive DNS}'s cache.
+\begin{lstlisting}
+<@\textcolor{codegray}{:>}@> kathara connect rec_dns
+<@\textcolor{codegray}{rec\_dns:/\#}@> rndc dumpdb -cache && grep "example.com" /var/cache/bind/dump.db
+<@\textcolor{codepurple}{example.com.}@>            59921   NS      <@\textcolor{codepurple}{ns.attacker.com.}@>
+<@\textcolor{codepurple}{uadrd.example.com.}@>       59919   A       <@\textcolor{codepurple}{1.1.1.3}@>
+\end{lstlisting}
+\end{itemize}
+
+\noindent
+Also in this case, if the attack didn't work, try to run the attack multiple times
+or, if you have a slow computer, try to increase the \texttt{delay} in the
+\emph{TLD DNS}'s machine.
+
+\subsection{\texttt{\textcolor{codepurple}{dig}}ging into the attack}
+
+Let's look at the packets that were sent during the attack.
+\\
+\\
+\noindent
+Clear the cache of the \emph{recursive DNS} and start capturing the traffic,
+writing the output to a file in the \textbf{shared} folder,
+so that it is accessible by the host machine:
+
+\begin{lstlisting}
+<@\textcolor{codegray}{:>}@> kathara connect rec_dns
+<@\textcolor{codegray}{rec\_dns:/\#}@> rndc flush
+<@\textcolor{codegray}{rec\_dns:/\#}@> tcpdump -i eth0 udp port 53 -w /shared/capture.pcap
+\end{lstlisting}
+
+\noindent
+\\
+Start the attack again from the \emph{attacker} machine:
+\begin{lstlisting}
+<@\textcolor{codegray}{:>}@> kathara connect attacker
+<@\textcolor{codegray}{attacker :>}@> ./kaminsky
+\end{lstlisting}
+
+\noindent
+\\
+Wait a couple of seconds and stop the capture, now we can open the file with \emph{wireshark}
+and analyze it:
+
+\begin{itemize}
+  \item In figure \ref*{fig:wireshark-1} we can see the request made by the
+        \emph{recursive DNS} (\texttt{192.168.1.254}) to the \emph{TLD DNS}
+        (3.3.3.1).\\
+        Wireshark also suggests us which packet contains the response for
+        this query (\textbf{59895}).
+  \item In figure \ref{fig:wireshark-2} we can see, among all the malicious responses,
+        the one that matched the right query ID (\textbf{0xe9f3}).
+  \item Finally, in figure \ref{fig:wireshark-3} we see the legitimate response, sent by
+        the \emph{TLD DNS}, which is marked as a \textbf{retransmission}, since a reply
+        for the query ID has already arrived (the malicious one).
+\end{itemize}
+
+\begin{figure}[h!]
+  \includegraphics[width=\linewidth]{wireshark-1.png}
+  \caption{The DNS query made by the \emph{recursive DNS} to the \emph{TLD DNS}}
+  \label{fig:wireshark-1}
+\end{figure}
+
+\begin{figure}[h!]
+  \includegraphics[width=\linewidth]{wireshark-2.png}
+  \caption{The malicious response that matched the query ID}
+  \label{fig:wireshark-2}
+\end{figure}
+
+\begin{figure}[h!]
+  \includegraphics[width=\linewidth]{wireshark-3.png}
+  \caption{The legitimate response}
+  \label{fig:wireshark-3}
+\end{figure}
+
+\clearpage
 
 \section{Final considerations}
 \label{sec:final-considerations}
