@@ -1,5 +1,4 @@
 \documentclass[11pt,a4paper]{article}
-
 \usepackage[utf8]{inputenc}
 \usepackage[margin=2.5cm]{geometry}
 \usepackage{graphicx}
@@ -7,6 +6,13 @@
 \usepackage{xcolor}
 \usepackage{listings}
 \usepackage{hyperref}
+\usepackage{graphicx}
+
+\graphicspath{ {./images/} }
+
+\title{Behind the Scenes}
+\author{Carlo Ramponi}
+\date{22 April 2022}
 
 \definecolor{codegreen}{rgb}{0,0.6,0}
 \definecolor{codegray}{rgb}{0.5,0.5,0.5}
@@ -44,16 +50,14 @@
     \vskip0.5cm
     \Large (DISI)
     \vskip2cm
-    \includegraphics[width=8cm]{logo_unitn.png}
+    \includegraphics[width=8cm]{images/logo_unitn.png}
     \vskip2cm
     \textbf{\Large Network Security - A.Y. 2021/2022}
-    \vskip1cm
+    \vskip2cm
     \textbf{\LARGE DNS}
     \vskip0.2cm
     \textbf{\LARGE Cache poisoning and Kaminsky attack}
-    \vskip1cm
-    \large May 4th, 2022
-    \vskip2cm
+    \vskip4cm
     \Large Carlo Ramponi, Luca De Menego, Matteo Zanotto
     \vfill
 
@@ -86,6 +90,12 @@
 \subsection{Katharà}
 
 \subsection{Laboratory network topology}
+\subsection{DNSSEC}
+\begin{figure}[h]
+  \centering
+  \includegraphics[scale=0.56]{network-topology.png}
+  \caption{Laboratory network topology}
+\end{figure}
 
 \section{Final considerations}
 
