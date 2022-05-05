@@ -133,9 +133,36 @@ The fields of resource record are:
 
 \section{DNS implementation: Bind}
 
+During this laboratory we will practically interact with a DNS implementation using \emph{Bind}, which is one of the most widely used DNS server implementation on Internet. It offers a complete implementation of the DNS protocol and in particular, it can be used to set up an authoritative name server, a recursive resolver or a forwarder. Bind is an open-source program, currently maintained by the Internet Software Consortium.
+
 \subsection{Bind configuration}
 
+With Bind the DNS server configuration happens through the \texttt{named.conf} file (usually located in the \texttt{/etc/bind} directory) in which you can specify the options applied to the Bind server and the domains zones for which the server holds authoritative data.
+
+\noindent
+In particular, when configuring a Bind server there are a lot of possible options. Some initial basic steps include:
+\begin{itemize}
+\item the definition of a list of trusted clients from which to accept queries with the \texttt{allow-query} option, for example by specifying only from internal network IP addresses. 
+\item the definition with the \texttt{forwards} option of a custom list of other DNS server addresses to forward queries.
+\item the specification of the cache file location with \texttt{dump-file}. 
+\end{itemize}
+These are just the basics of running a DNS server, but actually there a lot of more advanced options that can be configured with Bind, such as multi-threading, mechanisms for zone transfers between masters and slaves and detailed logging.
+
+\noindent
+Additionally, both for a good system hardening practise and for network resources usage, the Bind DNS server should be executed on a dedicated machine.
+
 \subsection{Zone files}
+
+Managing an authoritative name server with Bind means defining the domains zone files in which resource records are stored. Usually, the zone definitions happen on external files that are included in the main \texttt{named.conf} file in the \texttt{zone} blocks. 
+
+\noindent
+Bind follows very closely the DNS specification for the syntax of the zones files, to the point where even the Bind documentation often overlaps with the RFC 1034 when describing the zone part of the configuration. In particular, Bind uses a textual format for expressing Resource Records consisting as entries of name, data, type, class and time to live fields.
+
+\noindent
+At the beginning of each zone definition there is usually a Start Of Authority resource record that reports key data about the zone, such as the administrator or the caching and refreshing time configurations.
+
+\noindent
+Bind also supports some directives in the zone files to simplify its syntax. For example, the \texttt{@} sign will refer to the zone name defined when importing the file in the \texttt{named.conf} file or the \texttt{\$TTL} variable for expressing a global value for the time to live of entries (but will be overwritten when further specified).
 
 \section{Laboratory introduction}
 
@@ -592,7 +619,7 @@ This problem is mitigated by the use of pseudo random number generators and the 
 
 \subsection{DNSSEC}
 
-DNSSEC was developed to add data integrity and origin authentication to DNS query replies, so that users can verify that the answers received are indeed originated from the intended DNS server and have not been altered. In particular, DNSSEC applies public-key cryptography to prove the authenticity of data with signatures, by storing the public key in a new type of resource record and allowing resolvers to verify the responses. DNSSEC creates a Public Key Infrastructure leveraging the already existing DNS hierarchy so that each parent zone verifies the keys of its children zones.
+Another counter measure is DNSSEC, that was developed to add data integrity and origin authentication to DNS query replies, so that users can verify that the answers received are indeed originated from the intended DNS server and have not been altered. In particular, DNSSEC applies public-key cryptography to prove the authenticity of data with signatures, by storing the public key in a new type of resource record and allowing resolvers to verify the responses. DNSSEC creates a Public Key Infrastructure leveraging the already existing DNS hierarchy so that each parent zone verifies the keys of its children zones.
 
 \hfill \break
 \noindent
