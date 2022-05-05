@@ -151,6 +151,9 @@ These are just the basics of running a DNS server, but actually there a lot of m
 \noindent
 Additionally, both for a good system hardening practise and for network resources usage, the Bind DNS server should be executed on a dedicated machine.
 
+\noindent
+A configuration step must also be performed on clients machines that will connect to the Bind DNS server: the \texttt{resolve.conf} file must be modified to change the default DNS address to which queries will be sent with the address of the Bind name server.
+
 \subsection{Zone files}
 
 Managing an authoritative name server with Bind means defining the domains zone files in which resource records are stored. Usually, the zone definitions happen on external files that are included in the main \texttt{named.conf} file in the \texttt{zone} blocks. 
