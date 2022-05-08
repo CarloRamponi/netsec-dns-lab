@@ -335,25 +335,32 @@ One only thing is still missing: the response from the recursive nameserver to t
 
 \subsection{The Workspace}
 
-Inside the lab directory you will find a \textbf{shared folder}, common to all Kathará machines. All updates performed to the files inside this folder will be immediately visible by everyone. This means that you can:
+Inside the lab directory, you will find a \textbf{shared folder}, common to all Kathará
+machines. All updates performed to the files inside this folder will be immediately visible
+to everyone. This means that you can:
 \begin{itemize}
     \item work on the scripts inside it from the host machine, with the editor of your choice;
-    \item when you are ready, connect to the attacker's machine with \texttt{katahra connect attacker};
+    \item when you are ready, connect to the attacker's machine with \texttt{kathara connect attacker};
     \item compile the script with \texttt{g++ -o script-name /shared/script-name.cpp -ltins};
     \item run it with \texttt{./script-name}
 \end{itemize}
 
 \noindent
-All the scripts are written in C++, and for packet crafting the \texttt{libtins} library has been used, which provides an easy-to-use and efficient platform for manipulating network packets.
+All the scripts are written in C++, and for packet crafting the \texttt{libtins}
+library has been used, which provides an easy-to-use and efficient platform for
+manipulating network packets.
 
 \subsection{Implementation of the attack}
-The cache poisoning implementation is available inside the \texttt{cache-poisoning.cpp} file, in the script folder. Following the flow explained in subsection \ref{subsec:attack-details}, in the first part a DNS query is created. In particular, as shown in Figure \ref{fig:cache-poisoning-first}:
+The cache poisoning implementation is available inside the \texttt{cache-poisoning.cpp}
+file, in the script folder. Following the flow explained in subsection
+\ref{subsec:attack-details}, in the first part a DNS query is created. In particular,
+as shown in Figure \ref{fig:cache-poisoning-first}:
 \begin{itemize}
     \item the type of the request is set to \texttt{DNS::QUERY};
-    \item the query ID can be any number we want, since we are creating the query ourselves;
+    \item the query ID can be any number we want since we are creating the query ourselves;
     \item the recursion is allowed, so the recursive DNS will recursively ask the same query to upper-level nameservers;
     \item the actual query will be for the \texttt{A} record of \texttt{foo.example.com};
-    \item the final packet is constructed, composed by three parts: IP, UDP and DNS.
+    \item the final packet is constructed, composed of three parts: IP, UDP, and DNS.
 \end{itemize}
 
 \begin{figure}[h]
@@ -364,7 +371,9 @@ The cache poisoning implementation is available inside the \texttt{cache-poisoni
 \end{figure}
 
 \noindent
-In the second part of the script available in Figure \ref{fig:cache-poisoning-second}, instead, we will try to guess the Query ID, sending fake packets containing the malicious A record. Here the main steps are the following:
+In the second part of the script available in Figure \ref{fig:cache-poisoning-second},
+instead, we will try to guess the Query ID, sending fake packets containing the
+malicious A record. Here the main steps are the following:
 
 \begin{itemize}
     \item loop through every possible Query ID, creating a packet for each one of them;
@@ -375,7 +384,7 @@ In the second part of the script available in Figure \ref{fig:cache-poisoning-se
 \end{itemize}
 
 \noindent
-In order to finalize the script, we need to complete the DNS answer and initialize the IP packet correctly:
+To finalize the script, we need to complete the DNS answer and initialize the IP packet correctly:
 \begin{enumerate}
     \item \textbf{DNS answer creation}: what we want to achieve is a DNS \texttt{A} record stating that the domain \texttt{foo.example.com} should resolve to \texttt{1.1.1.3}. So the first parameter must be set to \texttt{ATTACKING\_DOMAIN}, and the second to \texttt{MALICIOUS\_WEBSERVER};
     \item \textbf{IP packet completion}: we want to send this fake response to the recursive DNS, pretending to be the legitimate authoritative nameserver it contacted. Since the first parameter represents the destination and the second one the source, we should put respectively \texttt{RECURSIVE\_DNS} and \texttt{AUTHORITATIVE\_DNS}.
@@ -405,7 +414,8 @@ Now that the probability of success has increased a lot, we can compile and run 
 \end{lstlisting}
 
 \noindent
-Since we are guessing the Query ID, the probability of success is clearly not 100\%. To verify whether the attack was successful or not there are two main ways:
+Since we are guessing the Query ID, the probability of success is not 100\%.
+To verify whether the attack was successful or not there are two main ways:
 \begin{enumerate}
     \item check the cache of the recursive DNS. You should see an A record for \texttt{foo.example.com} mapped to \texttt{1.1.1.3}.
     \begin{lstlisting}
@@ -437,7 +447,7 @@ If in your case it didn't work, keep retrying: after some trials you should be a
 
 \subsection{Attack introduction}
 
-In the previous attack we have successfully poisoned an \textbf{A} record in the
+In the previous attack, we have successfully poisoned an \textbf{A} record in the
 cache of the \emph{recursive DNS}, meaning that we gained full control over the
 host \texttt{foo.example.com}.
 \\
@@ -445,7 +455,7 @@ host \texttt{foo.example.com}.
 \noindent
 The \emph{Kaminsky attack} is a variant of the \emph{cache poisoning attack}, in
 which we want to gain control over a full domain, instead of a single host, by
-poisoning a \textbf{NS} record in the cache of the \emph{recursive DNS}.
+poisoning an \textbf{NS} record in the cache of the \emph{recursive DNS}.
 \\
 \\
 \noindent
@@ -483,8 +493,8 @@ Here are the steps of this attack:
 \end{enumerate}
 
 \noindent
-Also in this case, if the attacker is able to win the race condition, guessing the right
-\textbf{Query ID} before the legitimate response from the TLD DNS arrives, then attack
+Also in this case, if the attacker can win the race condition, guessing the right
+\textbf{Query ID} before the legitimate response from the TLD DNS arrives, then the attack
 is successful.
 \\
 \\
@@ -494,9 +504,9 @@ is way more powerful: it can poison a whole domain, not just a single host.
 
 \subsection{The workspace}
 
-Also the workspace is very similar to the previous attack. There is a template of the
+Also, the workspace is very similar to the previous attack. There is a template of the
 attack inside the lab's \textbf{shared} folder, which has to be completed. You can
-compile and run the scripts in the exact same way.
+compile and run the scripts in the same way.
 \\
 \\
 \noindent
@@ -624,19 +634,19 @@ Start the attack again from the \emph{attacker} machine:
 
 \noindent
 \\
-Wait a couple of seconds and stop the capture, now we can open the file with \emph{wireshark}
+Wait a couple of seconds and stop the capture, now we can open the file with \emph{Wireshark}
 and analyze it:
 
 \begin{itemize}
   \item In figure \ref*{fig:wireshark-1} we can see the request made by the
         \emph{recursive DNS} (\texttt{192.168.1.254}) to the \emph{TLD DNS}
         (3.3.3.1).\\
-        Wireshark also suggests us which packet contains the response for
+        Wireshark also suggests to us which packet contains the response for
         this query (\textbf{59895}).
   \item In figure \ref{fig:wireshark-2} we can see, among all the malicious responses,
         the one that matched the right query ID (\textbf{0xe9f3}).
   \item Finally, in figure \ref{fig:wireshark-3} we see the legitimate response, sent by
-        the \emph{TLD DNS}, which is marked as a \textbf{retransmission}, since a reply
+        the \emph{TLD DNS}, which is marked as a \textbf{retransmission} since a reply
         for the query ID has already arrived (the malicious one).
 \end{itemize}
 
@@ -665,27 +675,52 @@ and analyze it:
 
 \subsection{Performing the attack nowadays}
 
-Performing the attack nowadays is much harder than it was on early implementations of DNS servers. 
+Performing the attack nowadays is much harder than it was in early implementations of DNS servers. 
 
 \noindent
-As we have seen, the attacks are possible because of the small space of the query ID, consisting of just 16 bits. Some early versions of DNS servers applied weak random algorithms or even sequential procedures for the generation of this number, that made it easy for attackers to predict the next query ID.
+As we have seen, the attacks are possible because of the small space of the query ID,
+consisting of just 16 bits. Some early versions of DNS servers applied weak random algorithms
+or even sequential procedures for the generation of this number, which made it easy for
+attackers to predict the next query ID.
 
 \noindent
-This problem is mitigated by the use of pseudo random number generators and the inclusion of the source port, which is also randomized. In this way, since there are two 16 bits numbers to guess, it is much harder to complete an attack in the narrow window of time while the victim is going through the name resolution process. More specifically, considering $2^{16}$ bits for the query ID times $2^{16}$ (excluding the reserved ports) bits for the source port we get roughly 4 billion possible values to guess.
+This problem is mitigated by the use of pseudo-random number generators and the inclusion
+of the source port, which is also randomized. In this way, since there are two 16 bits numbers
+to guess, it is much harder to complete an attack in the narrow window of time while the victim
+is going through the name resolution process. More specifically, considering $2^{16}$ bits for
+the query ID times $2^{16}$ (excluding the reserved ports) bits for the source port we get
+roughly 4 billion possible values to guess.
 
 \subsection{DNSSEC}
 
-Another counter measure is DNSSEC, that was developed to add data integrity and origin authentication to DNS query replies, so that users can verify that the answers received are indeed originated from the intended DNS server and have not been altered. In particular, DNSSEC applies public-key cryptography to prove the authenticity of data with signatures, by storing the public key in a new type of resource record and allowing resolvers to verify the responses. DNSSEC creates a Public Key Infrastructure leveraging the already existing DNS hierarchy so that each parent zone verifies the keys of its children zones.
+Another counter measure is DNSSEC, that was developed to add data integrity and origin
+authentication to DNS query replies, so that users can verify that the answers received
+are indeed originated from the intended DNS server and have not been altered. In particular,
+DNSSEC applies public-key cryptography to prove the authenticity of data with signatures,
+by storing the public key in a new type of resource record and allowing resolvers to verify
+the responses. DNSSEC creates a Public Key Infrastructure leveraging the already existing
+DNS hierarchy so that each parent zone verifies the keys of its children zones.
 
 \hfill \break
 \noindent
-However, DNSSEC deployment proved to be especially problematic. Scalability issues were introduced by sustaining the PKI on the DNS hierarchy, as key changes require notifications to the parent or child zones: for large TLD name server this becomes infeasible due to the high number of child zones. Moreover, the chain of authentication of the PKI infrastructure holds for a certain name server only if all its parent nodes from the root name server have also deployed DNSSEC; in reality, the PKI remains incomplete with isolated zones of DNSSEC deployments.
+However, DNSSEC deployment proved to be especially problematic. Scalability issues were
+introduced by sustaining the PKI on the DNS hierarchy, as key changes require notifications
+to the parent or child zones: for large TLD name servers this becomes infeasible due to the
+high number of child zones. Moreover, the chain of authentication of the PKI infrastructure
+holds for a certain name server only if all its parent nodes from the root name server have
+also deployed DNSSEC; in reality, the PKI remains incomplete with isolated zones of DNSSEC
+deployments.
 
 \noindent
-Other issues arose with the heavy usage of caching throughout DNS, such as changes in zones keys not being immediately visible due to long TTLs (preventing resolvers to verify the data), the management of keys rollover (periodical changes of the keys) and handling of exposed keys.
+Other issues arose with the heavy usage of caching throughout DNS, such as changes in zones
+keys not being immediately visible due to long TTLs (preventing resolvers to verify the data),
+the management of keys rollover (periodical changes of the keys) and handling of exposed keys.
 
 \hfill \break
 \noindent
-As of today, DNSSEC is still at an early level of deployment as it requires a conjunctive effort by registrars, name servers administrators and network operators. Currently it is estimated that only 30\% of DNS data is validated (as reported by the APNIC, the internet registry of Pacific Asia).
+As of today, DNSSEC is still at an early level of deployment as it requires a conjunctive
+effort by registrars, name servers administrators and network operators. Currently it is
+estimated that only 30\% of DNS data is validated (as reported by the APNIC, the internet
+registry of Pacific Asia).
 
 \end{document}
